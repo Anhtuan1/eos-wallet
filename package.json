@@ -1,0 +1,22 @@
+{
+  "name": "alienworld-mine",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "crypto-js": "^4.2.0",
+    "eosjs": "^22.1.0",
+    "eosjs-ecc": "^4.0.7",
+    "express": "^4.19.2",
+    "js-sha256": "^0.11.0",
+    "sqlite3": "^5.1.7",
+    "util": "^0.12.5"
+  }
+}

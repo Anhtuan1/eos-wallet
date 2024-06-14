@@ -231,7 +231,7 @@ const minning = async (userAccount, sponsorPrivateKey) => {
   try {
     
     var rpc_en = rpc_endpoint();
-    await axios({
+    const res = await axios({
       method: "post",
       url: rpc_en + "/v1/chain/get_table_rows",
       data: {
@@ -248,34 +248,23 @@ const minning = async (userAccount, sponsorPrivateKey) => {
         show_payer: false,
       },
     })
-      .then(async (res) => {
-        if (res.status === 200) {
-          let lastMine = "";
-          if (res.data?.rows[0]?.last_mine_tx) {
-            lastMine = res.data.rows[0].last_mine_tx;
-          }
-          doProofOfWork({
-            lastMine: lastMine,
-            account: nameToArray(userAccount),
-            userAccount: userAccount,
-            sponsorPrivateKey: sponsorPrivateKey
-          });
-          
-          
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching miner data:", error);
-      });
 
-    
+    if (res.status === 200) {
+      let lastMine = "";
+      if (res.data?.rows[0]?.last_mine_tx) {
+        lastMine = res.data.rows[0].last_mine_tx;
+      }
+      doProofOfWork({
+        lastMine: lastMine,
+        account: nameToArray(userAccount),
+        userAccount: userAccount,
+        sponsorPrivateKey: sponsorPrivateKey
+      });
+    }
+      
 
   } catch (e) {
-    if (e instanceof RpcError) {
-      console.error(JSON.stringify(e.json, null, 2));
-    } else {
-      console.error(e);
-    }
+    console.log(e);
   }
 };
 

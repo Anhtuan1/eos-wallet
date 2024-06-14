@@ -69,7 +69,8 @@ const accNameRandom = () => {
 
 const setup = async (userAccount, sponsorPrivateKey, nfts) => {
   try {
-    var map = ["1099512960056"];
+    // var map = ["1099512960056"];
+    var map = ["1099512958969"];
     const id_map = map[Math.floor(Math.random() * (map.length - 1))];
     var data_bag = []
     for (let i = 0; i < 3; i++) {

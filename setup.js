@@ -175,7 +175,6 @@ const setupBags = async (userAccount, sponsorPrivateKey, nfts) => {
         }
       }
     }
-    console.log(nfts);
     if(data_bag.length > 0){
       const actions = [
         {
@@ -363,14 +362,13 @@ const getNfts = async (userAccount) => {
     const [wallet, privateKey, publicKey] = listAcc[i].split('|');
     // const accName = await getAccName(wallet);
     const nfts = await getNfts(wallet);
-    
     console.log('i', i)
-    // if(nfts.length > 0){
-    //   await setup(wallet,privateKey,nfts);
-    // }
     if(nfts.length > 0){
-      await setupBags(wallet,privateKey,nfts);
+      await setup(wallet,privateKey,nfts);
     }
+    // if(nfts.length > 0){
+    //   await setupBags(wallet,privateKey,nfts);
+    // }
   }
 
   // const bags = await getBags(wallet);

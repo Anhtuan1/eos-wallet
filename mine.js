@@ -9,6 +9,8 @@ const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
 
+const accountState = {};
+const accountBalance = {};
 
 const rpc_endpoint = () => {
   var endpointList = [
@@ -147,12 +149,83 @@ const doProofOfWork = async ({ lastMine, account, userAccount, sponsorPrivateKey
     });
 
     console.log('Account created successfully:', result);
+    if(result.processed){
+      result.processed.action_traces[0].inline_traces.forEach((t) => {
+        
+        if (t?.act?.data?.params?.delay) {
+          accountState[userAccount] = new Date().getTime() + 1000 * t.act.data.params.delay;
+          console.log('NextTime', accountState[userAccount])
+        }
+
+      });
+      getRewards(userAccount, sponsorPrivateKey);
+    }
     return result
   } catch (e) {
     console.error(JSON.stringify(e.json, null, 2));
   }
 };
 
+const getRewards = async (userAccount, sponsorPrivateKey) => {
+  try {
+    var rpc = rpc_endpoint();
+
+    const res = await axios({
+      method: "post",
+      url: rpc + "/v1/chain/get_table_rows",
+      data: JSON.stringify({
+        code: "m.federation",
+        index_position: 1,
+        json: true,
+        key_type: "",
+        limit: 10,
+        lower_bound: userAccount,
+        reverse: false,
+        scope: "m.federation",
+        show_payer: false,
+        table: "minerclaim",
+        table_key: "",
+        upper_bound: userAccount,
+      }),
+    })
+
+    if(res?.data?.rows[0]?.amount){
+      accountBalance[userAccount] = res?.data?.rows[0]?.amount;
+    }
+
+    if (parseFloat(res?.data?.rows[0]?.amount) > 6) {
+
+      const actions = [
+        {
+          account: "m.federation",
+          name: "claimmines",
+          authorization: [
+            {
+              actor: userAccount,
+              permission: "active",
+            },
+          ],
+          data: {
+            receiver: userAccount,
+          },
+        },
+      ];
+      const endPoint = rpc_endpoint()
+    
+        const rpc = new JsonRpc(rpc_endpoint(), { fetch });
+        console.log(endPoint);
+        const signatureProvider = new JsSignatureProvider([sponsorPrivateKey]);
+        const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
+        const result = await api.transact({ actions }, {
+          blocksBehind: 3,
+          expireSeconds: 90,
+        });
+    }
+  } catch (error) {
+      console.error('Error fetching data:', error.message);
+      throw error; // Throw the error to handle it further up the call stack
+  }
+};
 
 const minning = async (userAccount, sponsorPrivateKey) => {
   try {
@@ -223,13 +296,17 @@ const minning = async (userAccount, sponsorPrivateKey) => {
       for(let i=0; i< listAccMorning.length; i++){
         const [wallet, privateKey, publicKey] = listAccMorning[i].split('|');
         console.log(wallet);
-        await minning(wallet, privateKey)
+        if(!accountState[wallet] || now.getTime() >= accountState[wallet]){
+          await minning(wallet, privateKey)
+        }
       }
     }else{ 
       for(let i=0; i< listAccMoon.length; i++){
         const [wallet, privateKey, publicKey] = listAccMoon[i].split('|');
         console.log(wallet);
-        await minning(wallet, privateKey)
+        if(!accountState[wallet] || now.getTime() >= accountState[wallet]){
+          await minning(wallet, privateKey)
+        }
       }
     }
   }

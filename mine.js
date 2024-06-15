@@ -25,11 +25,11 @@ const rpc_endpoint = () => {
 
 
 const nameToArray = (name) => {
-  
+
   const sb = new Serialize.SerialBuffer({
     textEncoder: new TextEncoder(),
     textDecoder: new TextDecoder(),
-});
+  });
   sb.pushName(name);
   const arr = new Uint8Array(8);
   for (let i = 0; i < 8; i += 1) {
@@ -62,83 +62,84 @@ function sha256Hash(buffer) {
 }
 
 const doProofOfWork = async ({ lastMine, account, userAccount, sponsorPrivateKey }) => {
-  var difficulty = 0;
-  var lastMineTx = (
-    lastMine ??
-    "0000000000000000000000000000000000000000000000000000000000000000"
-  ).substr(0, 16);
+  try {
+    var difficulty = 0;
+    var lastMineTx = (
+      lastMine ??
+      "0000000000000000000000000000000000000000000000000000000000000000"
+    ).substr(0, 16);
 
-  var lastMineArr = fromHexString(lastMineTx);
+    var lastMineArr = fromHexString(lastMineTx);
 
-  console.log(
-    `Performing work with difficulty ${difficulty}, last tx is ${lastMineTx}...`
-  );
-
-  let good = false;
-  let itr = 0;
-  var hexDigest;
-  let randomArr;
-  const start = new Date();
-  
-  while (!good) {
-    randomArr = getRandomArray();
-    
-    var combined = new Uint8Array(
-      account.length + lastMineArr.length + randomArr.length
+    console.log(
+      `Performing work with difficulty ${difficulty}, last tx is ${lastMineTx}...`
     );
 
-    combined.set(account);
-    combined.set(lastMineArr, account.length);
-    // console.log(combined);
-    combined.set(randomArr, account.length + lastMineArr.length);
+    let good = false;
+    let itr = 0;
+    var hexDigest;
+    let randomArr;
+    const start = new Date();
+
+    while (!good) {
+      randomArr = getRandomArray();
+
+      var combined = new Uint8Array(
+        account.length + lastMineArr.length + randomArr.length
+      );
+
+      combined.set(account);
+      combined.set(lastMineArr, account.length);
+      // console.log(combined);
+      combined.set(randomArr, account.length + lastMineArr.length);
 
 
-    const hexDigest = sha256Hash(combined.slice(0, 24));
+      const hexDigest = sha256Hash(combined.slice(0, 24));
 
-    good = hexDigest.substr(0, 4) === "0000";
-    
+      good = hexDigest.substr(0, 4) === "0000";
 
-    if (good) {
-      const last = parseInt(hexDigest.substr(4, 1), 16);
-      good = last <= difficulty;
+
+      if (good) {
+        const last = parseInt(hexDigest.substr(4, 1), 16);
+        good = last <= difficulty;
+      }
+
+      itr += 1;
+
+      if (itr % 1000000 === 0) {
+        // console.log(
+        //   `Still mining - tried ${itr}. Ramdom ${randomArr}. hashSha256 ${hashSha256}. iterations.Last: ${parseInt(
+        //     hexDigest.substr(4, 1),
+        //     16
+        //   )} . hexDigest: ${hexDigest}`
+        // );
+        // good = true;
+      }
     }
 
-    itr += 1;
-
-    if (itr % 1000000 === 0) {
-      // console.log(
-      //   `Still mining - tried ${itr}. Ramdom ${randomArr}. hashSha256 ${hashSha256}. iterations.Last: ${parseInt(
-      //     hexDigest.substr(4, 1),
-      //     16
-      //   )} . hexDigest: ${hexDigest}`
-      // );
-      // good = true;
-    }
-  }
-
-  var randomString = toHex(randomArr);
-  let end = new Date();
+    var randomString = toHex(randomArr);
+    let end = new Date();
 
 
-  const actions = [
-    {
-      account: "m.federation",
-      name: "mine",
-      authorization: [
-        {
-          actor: userAccount,
-          permission: "active",
+    const actions = [
+      {
+        account: "m.federation",
+        name: "mine",
+        authorization: [
+          {
+            actor: userAccount,
+            permission: "active",
+          },
+        ],
+        data: {
+          miner: userAccount,
+          nonce: randomString,
         },
-      ],
-      data: {
-        miner: userAccount,
-        nonce: randomString,
       },
-    },
-  ];  
-  try {
+    ];
+
     const endPoint = rpc_endpoint()
-    
+
     const rpc = new JsonRpc(endPoint, { fetch });
     console.log(endPoint);
     const signatureProvider = new JsSignatureProvider([sponsorPrivateKey]);
@@ -149,9 +150,9 @@ const doProofOfWork = async ({ lastMine, account, userAccount, sponsorPrivateKey
     });
 
     console.log('Account created successfully:', result);
-    if(result.processed){
+    if (result.processed) {
       result.processed.action_traces[0].inline_traces.forEach((t) => {
-        
+
         if (t?.act?.data?.params?.delay) {
           accountState[userAccount] = new Date().getTime() + 1000 * t.act.data.params.delay;
           console.log('NextTime', accountState[userAccount])
@@ -162,7 +163,7 @@ const doProofOfWork = async ({ lastMine, account, userAccount, sponsorPrivateKey
     }
     return result
   } catch (e) {
-    console.error(JSON.stringify(e.json, null, 2));
+    console.log(JSON.stringify(e.json, null, 2));
   }
 };
 
@@ -189,7 +190,7 @@ const getRewards = async (userAccount, sponsorPrivateKey) => {
       }),
     })
 
-    if(res?.data?.rows[0]?.amount){
+    if (res?.data?.rows[0]?.amount) {
       accountBalance[userAccount] = res?.data?.rows[0]?.amount;
     }
 
@@ -211,25 +212,24 @@ const getRewards = async (userAccount, sponsorPrivateKey) => {
         },
       ];
       const endPoint = rpc_endpoint()
-    
-        const rpc = new JsonRpc(rpc_endpoint(), { fetch });
-        console.log(endPoint);
-        const signatureProvider = new JsSignatureProvider([sponsorPrivateKey]);
-        const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
-        const result = await api.transact({ actions }, {
-          blocksBehind: 3,
-          expireSeconds: 90,
-        });
+
+      const rpc = new JsonRpc(rpc_endpoint(), { fetch });
+      console.log(endPoint);
+      const signatureProvider = new JsSignatureProvider([sponsorPrivateKey]);
+      const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
+      const result = await api.transact({ actions }, {
+        blocksBehind: 3,
+        expireSeconds: 90,
+      });
     }
   } catch (error) {
-      console.error('Error fetching data:', error.message);
-      throw error; // Throw the error to handle it further up the call stack
+    console.log('Error fetching data:', error.message);
   }
 };
 
 const minning = async (userAccount, sponsorPrivateKey) => {
   try {
-    
+
     var rpc_en = rpc_endpoint();
     const res = await axios({
       method: "post",
@@ -261,7 +261,9 @@ const minning = async (userAccount, sponsorPrivateKey) => {
         sponsorPrivateKey: sponsorPrivateKey
       });
     }
-      
+
+
+
 
   } catch (e) {
     console.log(e);
@@ -270,31 +272,39 @@ const minning = async (userAccount, sponsorPrivateKey) => {
 
 
 
-(async () => { 
+(async () => {
   const fileMorning = path.join(__dirname, 'acc_morning.txt');
   const acc_morning = await fs.readFile(fileMorning, 'utf8');
   const listAccMorning = acc_morning.split('\n')
-  const fileMoon= path.join(__dirname, 'acc_moon.txt');
+  const fileMoon = path.join(__dirname, 'acc_moon.txt');
   const acc_moon = await fs.readFile(fileMoon, 'utf8');
   const listAccMoon = acc_moon.split('\n')
-  
+
   while (true) {
     const now = new Date();
     const hour = now.getHours();
-    if(hour >= 6 && hour < 18){
-      for(let i=0; i< listAccMorning.length; i++){
+    if (hour >= 6 && hour < 18) {
+      for (let i = 0; i < listAccMorning.length; i++) {
         const [wallet, privateKey, publicKey] = listAccMorning[i].split('|');
         console.log(wallet);
-        if(!accountState[wallet] || now.getTime() >= accountState[wallet]){
-          await minning(wallet, privateKey)
+        try {
+          if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
+            await minning(wallet, privateKey);
+          }
+        } catch(e) {
+          console.log(e);
         }
       }
-    }else{ 
-      for(let i=0; i< listAccMoon.length; i++){
+    } else {
+      for (let i = 0; i < listAccMoon.length; i++) {
         const [wallet, privateKey, publicKey] = listAccMoon[i].split('|');
         console.log(wallet);
-        if(!accountState[wallet] || now.getTime() >= accountState[wallet]){
-          await minning(wallet, privateKey)
+        try {
+          if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
+            await minning(wallet, privateKey);
+          }
+        } catch(e) {
+          console.log(e);
         }
       }
     }

@@ -1,3 +1,4 @@
+const WALLET_MASTER = 'jyora.wam';
 const { Api, JsonRpc, RpcError } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  
 // const fetch = require('node-fetch');                              
@@ -67,99 +68,69 @@ const accNameRandom = () => {
 };
 
 
-const setup = async (userAccount, sponsorPrivateKey, nfts) => {
+const withdraw = async (account, sponsorPrivateKey, nfts, balance) => {
   try {
-    // var map = ["1099512960056"];
-    var map = ["1099512958969"];
-    const id_map = map[Math.floor(Math.random() * (map.length - 1))];
-    var data_bag = []
-    for (let i = 0; i < 3; i++) {
-      if (nfts[i]) {
-        if(nfts[i].totalPoints > 22){
-          data_bag.push(nfts[i].asset_id);
+    var actions = [];
+    if(balance > 0.01){
+      var num_tras = (Math.floor(parseFloat(balance)*100))/100;
+      var num_str = (""+num_tras).split('.');
+      var num_trans = num_str.length == 1 ? num_str[0]+".0000" : num_str.join('.')+"0".repeat(4-num_str[1].length)
+      actions.push({
+        account: 'alien.worlds',
+        name: 'transfer',
+        authorization: [{
+          actor: account,
+          permission: 'active',
+        }],
+        data: {
+        from: account,
+        to: WALLET_MASTER,
+        quantity: num_trans+" TLM",
+        memo: '',
+        },
+      })
+    }
+    if(nfts.length > 0){ 
+      var data_bag = [];
+      nfts.map((x) => {
+        if(x?.name != 'Male Human' && x?.is_transferable === true){
+          data_bag.push(x.asset_id)
         }
+      })
+      if(data_bag.length > 0 ){
+        actions.push({
+          account: 'atomicassets',
+          name: 'transfer',
+          authorization: [{
+            actor: account,
+            permission: 'active',
+          }],
+          data: {
+          asset_ids: [...data_bag],
+          from: account,
+          to: WALLET_MASTER,
+          memo: '',
+          },
+        })
       }
+      
     }
+    if(actions.length > 0){
+      const rpc = new JsonRpc('https://wax.greymass.com', { fetch });
 
-    const actions = [
-      {
-        account: "federation",
-        name: "agreeterms",
-        authorization: [
-          {
-            actor: userAccount,
-            permission: "active",
-          },
-        ],
-        data: {
-          account: userAccount,
-          terms_id: 1,
-          terms_hash:
-            "e2e07b7d7ece0d5f95d0144b5886ff74272c9873d7dbbc79bc56f047098e43ad",
-        },
-      },
-      {
-        account: "federation",
-        name: "settag",
-        authorization: [
-          {
-            actor: userAccount,
-            permission: "active",
-          },
-        ],
-        data: {
-          account: userAccount,
-          tag: accNameRandom(),
-        },
-      },
-      {
-        account: "m.federation",
-        name: "setbag",
-        authorization: [
-          {
-            actor: userAccount,
-            permission: "active",
-          },
-        ],
-        data: {
-          account: userAccount,
-          items: data_bag,
-        },
-      },
-      {
-        account: "m.federation",
-        name: "setland",
-        authorization: [
-          {
-            actor: userAccount,
-            permission: "active",
-          },
-        ],
-        data: {
-          account: userAccount,
-          land_id: id_map,
-        },
-      }
-    ];
-    const rpc = new JsonRpc('https://wax.greymass.com', { fetch });
+      const signatureProvider = new JsSignatureProvider([sponsorPrivateKey]);
 
-    const signatureProvider = new JsSignatureProvider([sponsorPrivateKey]);
+      // API instance
+      const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
+      const result = await api.transact({ actions }, {
+        blocksBehind: 3,
+        expireSeconds: 90,
+      });
 
-    // API instance
-    const api = new Api({ rpc, signatureProvider, textDecoder: new TextDecoder(), textEncoder: new TextEncoder() });
-    const result = await api.transact({ actions }, {
-      blocksBehind: 3,
-      expireSeconds: 90,
-    });
-
-    console.log('Account created successfully:', result);
-
+      console.log('Account created successfully:', result);
+    }
   } catch (e) {
-    if (e instanceof RpcError) {
-      console.error(JSON.stringify(e.json, null, 2));
-    } else {
-      console.error(e);
-    }
+    console.log(e);
   }
 
 }
@@ -289,32 +260,7 @@ const getLandId = async (userAccount) => {
   }
 };
 
-const getAccName = async (userAccount) => {
-  if (userAccount) {
-    var rpc = rpc_endpoint();
-    const res = await axios({
-      method: "post",
-      url: rpc + "/v1/chain/get_table_rows",
-      data: JSON.stringify({
-        code: "federation",
-        json: true,
-        lower_bound: userAccount,
-        scope: "federation",
-        show_payer: false,
-        table: "players",
-        table_key: "",
-        upper_bound: userAccount,
-      }),
-    })
-    if (res.data.rows[0]?.tag) {
-      if (res.data.rows[0]?.tag != userAccount) {
-        return res.data.rows[0]?.tag
-      }
-    } else {
-      return null;
-    }
-  }
-};
+
 
 const getNfts = async (userAccount) => {
   if (!userAccount) {
@@ -327,16 +273,15 @@ const getNfts = async (userAccount) => {
     nft_rpc +
     `/atomicassets/v1/assets?owner=` +
     userAccount +
-    `&collection_name=alien.worlds&limit=100`
+    `&imit=100`
   );
   
   if (res.data) {
     let nftsAndPoint = res.data.data.map((x) => {
       if (x.data.ease || x.data.luck || x.data.difficulty) {
-        x.totalPoints = x.data.ease + 2 * x.data.luck + x.data.difficulty;
-        if (x.totalPoints > 22) {
-          return x;
-        }
+        x.totalPoints =
+          x.data.ease + 2 * x.data.luck + x.data.difficulty;
+        return x;
       }
     });
     var nftsSort = nftsAndPoint.sort(
@@ -351,6 +296,27 @@ const getNfts = async (userAccount) => {
 
 };
 
+const getBlance = async (userAccount) => {
+  if (!userAccount) {
+    return [];
+  }
+  var rpc = rpc_endpoint();
+  const res = await axios.post(
+    rpc + "/v1/chain/get_currency_balance",
+    {
+      code: "alien.worlds",
+      account: userAccount,
+      symbol: "TLM",
+    },
+  )
+      if (res.status === 200) {
+        return res.data[0];
+      } else {
+        return null;
+      }
+     
+};
+
 
 (async () => {
   
@@ -359,44 +325,19 @@ const getNfts = async (userAccount) => {
   const fileMaster = path.join(__dirname, 'setup.txt');
   const dataAcc = await fs.readFile(fileMaster, 'utf8');
   const listAcc = dataAcc.split('\n');
-  for(let i=0; i< listAcc.length; i++){
+  for(let i=1; i< listAcc.length; i++){
     const [wallet, privateKey, publicKey] = listAcc[i].split('|');
     // const accName = await getAccName(wallet);
     const nfts = await getNfts(wallet);
+    const balance = await getBlance(wallet);
     console.log('i', i)
     if(nfts.length > 0){
-      await setup(wallet,privateKey,nfts);
+      await withdraw(wallet,privateKey,nfts, balance);
     }
-    // if(nfts.length > 0){
-    //   await setupBags(wallet,privateKey,nfts);
-    // }
+    
   }
 
-  // const bags = await getBags(wallet);
-  // const landId = await getLandId(wallet);
-  // const accName2 = await getAccName(wallet);
-  // const sql = `
-  //   INSERT OR REPLACE INTO accounts (wallet, privateKey, publicKey, accountName, bags, land, nft, lastTx, lastTime, note, updated)
-  //   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  // `;
-  // db.run(sql, [
-  //   wallet,
-  //   privateKey,
-  //   publicKey,
-  //   accName2,
-  //   bags.join`,`,
-  //   landId,
-  //   '',
-  //   '',
-  //   '',
-  //   'Setup',
-  //   ''
-  // ], function(err) {
-  //   if (err) {
-  //     return console.error('Lỗi khi thêm hoặc cập nhật account:', err.message);
-  //   }
-  //   console.log(`Thêm hoặc cập nhật thành công. ID của bản ghi mới: ${this.lastID}`);
-  // });
+  
   db.close();
 })()
 

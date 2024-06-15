@@ -159,7 +159,7 @@ const doProofOfWork = async ({ lastMine, account, userAccount, sponsorPrivateKey
         }
 
       });
-      getRewards(userAccount, sponsorPrivateKey);
+      await getRewards(userAccount, sponsorPrivateKey);
     }
     return result
   } catch (e) {

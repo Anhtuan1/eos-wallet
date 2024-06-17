@@ -155,13 +155,14 @@ const doProofOfWork = async ({ lastMine, account, userAccount, sponsorPrivateKey
 
         if (t?.act?.data?.params?.delay) {
           accountState[userAccount] = new Date().getTime() + 1000 * t.act.data.params.delay;
-          console.log('NextTime', accountState[userAccount])
+          console.log('NextTime', accountState[userAccount]);
+          
         }
 
       });
       await getRewards(userAccount, sponsorPrivateKey);
     }
-    return result
+    return { wallet: userAccount, nextMiningTime: accountState[userAccount] };
   } catch (e) {
     console.log(JSON.stringify(e.json, null, 2));
   }
@@ -254,12 +255,13 @@ const minning = async (userAccount, sponsorPrivateKey) => {
       if (res.data?.rows[0]?.last_mine_tx) {
         lastMine = res.data.rows[0].last_mine_tx;
       }
-      doProofOfWork({
+      const result = await doProofOfWork({
         lastMine: lastMine,
         account: nameToArray(userAccount),
         userAccount: userAccount,
         sponsorPrivateKey: sponsorPrivateKey
       });
+      return result;
     }
 
 
@@ -275,9 +277,9 @@ const minning = async (userAccount, sponsorPrivateKey) => {
 parentPort.on('message', async (data) => {
   const { wallet, privateKey } = data;
   try {
-    await minning(wallet, privateKey);
-    parentPort.postMessage({ wallet, success: true });
+    const result = await minning(wallet, privateKey);
+    parentPort.postMessage({ success: true, result });
   } catch (e) {
-    parentPort.postMessage({ wallet, success: false, error: e.message });
+    parentPort.postMessage({ success: false, error: e.message });
   }
 });

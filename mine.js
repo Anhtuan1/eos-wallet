@@ -1,4 +1,4 @@
-const THREAD_NUMBER = 4;
+const THREAD_NUMBER = 6;
 const { Api, JsonRpc, RpcError, Serialize } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
 const fs = require('fs').promises;
@@ -19,25 +19,29 @@ const { Worker } = require('worker_threads');
   function createWorker(wallet, privateKey) {
     return new Promise((resolve, reject) => {
       const worker = new Worker(path.join(__dirname, 'worker.js'));
-      worker.postMessage({ wallet, privateKey });
+      worker.postMessage({ wallet, privateKey }); 
 
-      worker.on('message', (result) => {
-        if (result.success) {
-          // Update the account state if mining was successful
-          accountState[result.wallet] = Date.now() + 60000; // Assuming you update state with a 1-minute delay
-          resolve(result);
+      worker.on('message', (message) => {
+        console.log(message)
+        if (message?.result) {
+          const { wallet, nextMiningTime } = message.result;
+          
+          accountState[wallet] = nextMiningTime;
+          resolve();
         } else {
-          reject(result.error);
+          console.error(`Mining failed for wallet ${wallet}: ${message.error}`);
+          resolve(); // Continue processing other accounts even if one fails
         }
       });
 
       worker.on('error', (err) => {
-        reject(err);
+        console.error(`Worker error for wallet ${wallet}: ${err}`);
+        resolve(); // Continue processing other accounts even if one fails
       });
 
       worker.on('exit', (code) => {
         if (code !== 0) {
-          reject(new Error(`Worker stopped with exit code ${code}`));
+          console.error(`Worker stopped with exit code ${code}`);
         }
       });
     });

@@ -1,4 +1,4 @@
-const THREAD_NUMBER = 6;
+const MAX_CONCURRENT_WORKERS = 4;
 const { Api, JsonRpc, RpcError, Serialize } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
 const fs = require('fs').promises;
@@ -47,25 +47,29 @@ const { Worker } = require('worker_threads');
     });
   }
 
-  while (true) {
-    const now = new Date();
-    const hour = now.getHours();
-    const listAcc = hour >= 6 && hour < 18 ? listAccMorning : listAccMoon;
-
+  async function processAccounts(listAcc) {
     const workers = [];
     for (let i = 0; i < listAcc.length; i++) {
       const [wallet, privateKey] = listAcc[i].split('|');
-      if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
-        workers.push(createWorker(wallet, privateKey));
-        if (workers.length >= THREAD_NUMBER) {
+      if (!accountState[wallet] || Date.now() >= accountState[wallet]) {
+        if (workers.length >= MAX_CONCURRENT_WORKERS) {
           await Promise.all(workers);
           workers.length = 0;
         }
+        workers.push(createWorker(wallet, privateKey));
       }
     }
-    // Wait for all remaining workers to finish
     if (workers.length > 0) {
       await Promise.all(workers);
     }
+  }
+
+  while (true) {
+
+    const now = new Date();
+    const hour = now.getHours();
+    const listAcc = hour >= 6 && hour < 18 ? listAccMorning : listAccMoon;
+    await processAccounts(listAcc);
+
   }
 })();

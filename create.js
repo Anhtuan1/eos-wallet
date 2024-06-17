@@ -1,4 +1,4 @@
-var MAX = 30;
+var MAX = 100;
 const { Api, JsonRpc, RpcError } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
 // const fetch = require('node-fetch');                                // node only; not needed in browsers
@@ -152,7 +152,11 @@ function sleep(ms) {
 (async () => {
 
   for (let i = 1; i <= MAX; i++) {
-    await create();
+    try{
+      await create();
+    }catch(e) {
+      console.log(e)
+    }
     await sleep(4000);
   }
 

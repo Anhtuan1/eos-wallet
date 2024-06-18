@@ -1,4 +1,5 @@
 const MAX_CONCURRENT_WORKERS = 4;
+const BATCH_SIZE = 50; 
 const { Api, JsonRpc, RpcError, Serialize } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
 const fs = require('fs').promises;
@@ -47,16 +48,16 @@ const { Worker } = require('worker_threads');
     });
   }
 
-  async function processAccounts(listAcc) {
+  async function processBatch(listAcc) {
     const workers = [];
-    for (let i = 0; i < listAcc.length; i++) {
-      const [wallet, privateKey] = listAcc[i].split('|');
+    for (const acc of listAcc) {
+      const [wallet, privateKey] = acc.split('|');
       if (!accountState[wallet] || Date.now() >= accountState[wallet]) {
+        workers.push(createWorker(wallet, privateKey));
         if (workers.length >= MAX_CONCURRENT_WORKERS) {
           await Promise.all(workers);
           workers.length = 0;
         }
-        workers.push(createWorker(wallet, privateKey));
       }
     }
     if (workers.length > 0) {
@@ -64,12 +65,17 @@ const { Worker } = require('worker_threads');
     }
   }
 
-  while (true) {
+  async function processAccounts(listAcc) {
+    for (let i = 0; i < listAcc.length; i += BATCH_SIZE) {
+      const batch = listAcc.slice(i, i + BATCH_SIZE);
+      await processBatch(batch);
+    }
+  }
 
+  while (true) {
     const now = new Date();
     const hour = now.getHours();
     const listAcc = hour >= 6 && hour < 18 ? listAccMorning : listAccMoon;
     await processAccounts(listAcc);
-
   }
 })();

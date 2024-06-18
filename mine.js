@@ -1,5 +1,6 @@
 const MAX_CONCURRENT_WORKERS = 4;
 const BATCH_SIZE = 50; 
+const readline = require('readline');
 const { Api, JsonRpc, RpcError, Serialize } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
 const fs = require('fs').promises;
@@ -16,6 +17,11 @@ const { Worker } = require('worker_threads');
   const listAccMoon = acc_moon.split('\n');
 
   const accountState = {};
+
+  // Delay function to sleep for a specified time in milliseconds
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   function createWorker(wallet, privateKey) {
     return new Promise((resolve, reject) => {
@@ -58,6 +64,9 @@ const { Worker } = require('worker_threads');
           await Promise.all(workers);
           workers.length = 0;
         }
+        await delay(1000);
+      }else{
+        await delay(2000);
       }
     }
     if (workers.length > 0) {

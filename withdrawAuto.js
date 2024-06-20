@@ -40,7 +40,7 @@ const rpc_endpoint = () => {
   var endpointList = [
     "https://wax.eosdac.io",
     "https://wax.eosrio.io",
-    "https://api.wax.alohaeos.com",
+    "https://api.wax.alohaeos.com"
   ];
   return endpointList[~~(Math.random() * (endpointList.length - 1))];
 };

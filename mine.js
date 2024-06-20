@@ -17,9 +17,12 @@ const accountBalance = {};
 const rpc_endpoint = () => {
   var endpointList = [
     "https://wax.eosdac.io",
-    "https://wax.api.eosnation.io",
     "https://wax.eosrio.io",
-    "https://api.wax.alohaeos.com",
+    "https://apiwax.3dkrender.com",
+    "https://wax.blacklusion.io",
+    "https://wax.blokcrafters.io",
+    "https://wax.eu.eosamsterdam.net",
+    "http://api.wax.alohaeos.com"
   ];
   return endpointList[~~(Math.random() * (endpointList.length - 1))];
 };

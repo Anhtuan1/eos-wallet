@@ -274,13 +274,14 @@ const minning = async (userAccount, sponsorPrivateKey, masterUser, masterKey) =>
       });
     }
 
-
-
-
   } catch (e) {
     console.log(e);
   }
 };
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 const threadWorking = async (listAccMorning, listAccMoon, masterUser, masterKey, number) => {
   while (true) {
@@ -295,6 +296,8 @@ const threadWorking = async (listAccMorning, listAccMoon, masterUser, masterKey,
           try {
             if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
               await minning(wallet, privateKey, masterUser, masterKey);
+            }else{
+              await sleep(1000);
             }
           } catch(e) {
             console.log(e);
@@ -309,6 +312,8 @@ const threadWorking = async (listAccMorning, listAccMoon, masterUser, masterKey,
           try {
             if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
               await minning(wallet, privateKey,masterUser, masterKey);
+            }else{
+              await sleep(1000);
             }
           } catch(e) {
             console.log(e);

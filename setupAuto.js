@@ -240,8 +240,6 @@ const getNfts = async (userAccount) => {
     }
     
   }
-
-  
   db.close();
 })()
 

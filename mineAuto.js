@@ -1,3 +1,5 @@
+const THREAD_NUMBER = 3;
+
 const { Api, JsonRpc, RpcError, Serialize } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
 // const fetch = require('node-fetch');                                // node only; not needed in browsers
@@ -198,7 +200,7 @@ const getRewards = async (userAccount, sponsorPrivateKey) => {
       accountBalance[userAccount] = res?.data?.rows[0]?.amount;
     }
 
-    if (parseFloat(res?.data?.rows[0]?.amount) > 6) {
+    if (parseFloat(res?.data?.rows[0]?.amount) > 4) {
 
       const actions = [
         {
@@ -280,7 +282,42 @@ const minning = async (userAccount, sponsorPrivateKey, masterUser, masterKey) =>
   }
 };
 
-
+const threadWorking = async (listAccMorning, listAccMoon, masterUser, masterKey, number) => {
+  while (true) {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    if (hour >= 6 && hour < 18) {
+      for (let i = 0; i < listAccMorning.length; i++) {
+        if(i%THREAD_NUMBER == number){
+          const [wallet, privateKey, publicKey] = listAccMorning[i].split('|');
+          console.log(wallet);
+          try {
+            if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
+              await minning(wallet, privateKey, masterUser, masterKey);
+            }
+          } catch(e) {
+            console.log(e);
+          }
+        }
+      }
+    } else {
+      for (let i = 0; i < listAccMoon.length; i++) {
+        if(i%THREAD_NUMBER == number){
+          const [wallet, privateKey, publicKey] = listAccMoon[i].split('|');
+          console.log(wallet);
+          try {
+            if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
+              await minning(wallet, privateKey,masterUser, masterKey);
+            }
+          } catch(e) {
+            console.log(e);
+          }
+        }
+      }
+    }
+  }
+}
 
 (async () => {
   const fileMaster = path.join(__dirname, 'master.txt');
@@ -293,35 +330,10 @@ const minning = async (userAccount, sponsorPrivateKey, masterUser, masterKey) =>
   const listAccMorning = acc_morning.split('\n')
   const fileMoon = path.join(__dirname, 'acc_moon.txt');
   const acc_moon = await fs.readFile(fileMoon, 'utf8');
-  const listAccMoon = acc_moon.split('\n')
+  const listAccMoon = acc_moon.split('\n');
 
-  while (true) {
-    const now = new Date();
-    const hour = now.getHours();
-    if (hour >= 6 && hour < 18) {
-      for (let i = 0; i < listAccMorning.length; i++) {
-        const [wallet, privateKey, publicKey] = listAccMorning[i].split('|');
-        console.log(wallet);
-        try {
-          if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
-            await minning(wallet, privateKey, masterUser, masterKey);
-          }
-        } catch(e) {
-          console.log(e);
-        }
-      }
-    } else {
-      for (let i = 0; i < listAccMoon.length; i++) {
-        const [wallet, privateKey, publicKey] = listAccMoon[i].split('|');
-        console.log(wallet);
-        try {
-          if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
-            await minning(wallet, privateKey,masterUser, masterKey);
-          }
-        } catch(e) {
-          console.log(e);
-        }
-      }
-    }
+  for(let i =0; i < THREAD_NUMBER; i++){
+    threadWorking(listAccMorning, listAccMoon, masterUser, masterKey, i)
   }
+
 })();

@@ -17,7 +17,7 @@ const generateRandomAccountName = () => {
   }
   return accountName;
 };
-const filePath = path.join(__dirname, `${new Date()}.txt`);
+const filePath = path.join(__dirname, `setup.txt`);
 
 const dataSignature = async () => {
   try {

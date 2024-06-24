@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Importer</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .pagination {
+      display: flex;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid mt-5">
+    <h1 class="mb-4">Import Accounts</h1>
+    <form id="import-form" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="file">Select a .txt file:</label>
+        <input type="file" class="form-control-file" id="file" name="file" accept=".txt" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Import</button>
+    </form>
+
+   
+    <h1 class="mt-5 mb-4">Account Balances</h1>
+    <div class="mb-4">
+      <label for="limit">Select Limit:</label>
+      <select id="limit" class="form-control" style="width: auto; display: inline-block;">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+        <option value="3000">3000</option>
+      </select>
+      <label for="order">Order By:</label>
+      <select id="order" class="form-control" style="width: auto; display: inline-block;">
+        <option value="wallet">Wallet</option>
+        <option value="balance">Balance</option>
+        <option value="updated">Updated</option>
+      </select>
+      <span>Total Wallets: <span id="total-wallets"></span></span>
+    </div>
+    <table class="table">
+      <thead>
+          <tr>
+            <th>#</th>
+            <th>Wallet</th>
+            <th>Bags</th>
+            <th>Land</th>
+            <th>NFT</th>
+            <th>Last Tx</th>
+            <th>Last Time</th>
+            <th>Note</th>
+            <th>Balance</th>
+            <th>Reward</th>
+            <th>Updated</th>
+            <th>Action</th>
+          </tr>
+      </thead>
+      <tbody id="account-table">
+        <!-- Accounts will be injected here -->
+      </tbody>
+    </table>
+    <nav>
+      <ul class="pagination">
+        <li class="page-item"><a class="page-link" href="#" id="prev-page">Previous</a></li>
+        <li class="page-item"><a class="page-link" href="#" id="next-page">Next</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <script>
+    
+    document.addEventListener('DOMContentLoaded', function () {
+      let currentPage = 1;
+      let currentLimit = 3000;
+      let currentOrder = 'wallet';
+      var accounts = [];
+      var api_endpoint = "https://query.3dkrender.com https://wax.eu.eosamsterdam.net https://hyperion.wax.blacklusion.io https://wax.blacklusion.io https://wax.blokcrafters.io https://api-wax-mainnet.wecan.dev https://history-wax-mainnet.wecan.dev https://hyperion-wax-mainnet.wecan.dev https://wax.dapplica.io https://api-wax.eosarabia.net https://wax-history.eosdac.io https://wax.eosphere.io https://api.wax.greeneosio.com https://wax-public1.neftyblocks.com https://wax-public2.neftyblocks.com https://api.wax.liquidstudios.io https://wax.api.eosnation.io https://wax.dfuse.eosnation.io https://wax.pink.gg https://wax.greymass.com https://wax.greymass.com https://wax.greymass.com https://wax-bp.wizardsguild.one https://wax-hyperion.wizardsguild.one".split(' ');
+      var history_endpoint = "https://api.wax.alohaeos.com https://hyperion.wax.blacklusion.io https://wax.blokcrafters.io https://wax.defibox.xyz https://history-wax-mainnet.wecan.dev https://wax.cryptolions.io https://wax.dapplica.io https://api-wax.eosarabia.net https://wax.eosdublin.io https://hyperion.wax.detroitledger.tech https://wax.eosphere.io https://api.wax.greeneosio.com https://hyperion.oiac.io https://api.waxeastern.cn https://wax.hivebp.io https://wax-api.eosiomadrid.io https://api.waxsweden.org https://wax-history.wizardsguild.one https://wax-hyperion.wizardsguild.one".split(" ");
+      var hyper_endpoint = "https://api.wax.alohaeos.com https://hyperion.wax.blacklusion.io https://wax.defibox.xyz https://hyperion-wax-mainnet.wecan.dev https://wax.cryptolions.io https://wax.dapplica.io https://wax.eosdublin.io https://hyperion.wax.detroitledger.tech https://wax.eosphere.io https://api.wax.liquidstudios.io https://hyperion.wax.tgg.gg https://wax-api.eosiomadrid.io https://wax-hyperion.wizardsguild.one".split(" ");
+      var nft_endpoint = "https://atomic.3dkrender.com https://wax-aa.eu.eosamsterdam.net https://aa.wax.blacklusion.io https://wax.blokcrafters.io https://atomic-wax-mainnet.wecan.dev https://atomic-api.wax.cryptolions.io https://aa.dapplica.io https://api-wax-aa.eosarabia.net https://aa-api-wax.eosauthority.com https://wax-aa.eosdac.io https://wax-aa.eosdublin.io 	https://atomic.wax.detroitledger.tech https://wax-atomic-api.eosphere.io https://atomic3.hivebp.io https://wax-atomic.eosiomadrid.io https://wax-atomic.wizardsguild.one".split(" ");
+      
+
+      const renderTable = () => {
+        const tableBody = document.getElementById('account-table');
+        tableBody.innerHTML = '';
+        console.log(accounts)
+        accounts.forEach((account, index) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${account.wallet}</td>
+            <td>${account.bags}</td>
+            <td>${account.land}</td>
+            <td>${account.nft}</td>
+            <td>${account.lastTx}</td>
+            <td>${account.lastTime}</td>
+            <td>${account.note}</td>
+            <td>${account.balance}</td>
+            <td>${account.reward}</td>
+            <td>${account.updated}</td>
+            <td><button class="btn btn-danger delete-button" data-wallet="${account.wallet}">Delete</button></td>
+          `;
+          tableBody.appendChild(row);
+        });
+      }
+
+      document.querySelectorAll('.delete-button').forEach(button => {
+          button.addEventListener('click', async function () {
+            const wallet = this.getAttribute('data-wallet');
+            if (confirm(`Are you sure you want to delete wallet ${wallet}?`)) {
+              await fetch(`/accounts/${wallet}`, { method: 'DELETE' });
+              fetchAccounts(currentPage, currentLimit, currentOrder);
+              fetchTotalWallets();
+            }
+          });
+      });
+
+      const fetchAccounts = async (page, limit, order) => {
+        const response = await fetch(`/accounts`);
+        accounts = await response.json();
+        renderTable(accounts);
+      };
+
+      const fetchTotalWallets = async () => {
+        const response = await fetch('/accounts/count');
+        const data = await response.json();
+        document.getElementById('total-wallets').textContent = data.count;
+      };
+
+      document.getElementById('limit').addEventListener('change', function () {
+        currentLimit = this.value;
+        currentPage = 1; // Reset to first page when limit changes
+        fetchAccounts(currentPage, currentLimit, currentOrder);
+      });
+
+      document.getElementById('order').addEventListener('change', function () {
+        currentOrder = this.value;
+        fetchAccounts(currentPage, currentLimit, currentOrder);
+      });
+
+      document.getElementById('prev-page').addEventListener('click', function (e) {
+        e.preventDefault();
+        if (currentPage > 1) {
+          currentPage--;
+          fetchAccounts(currentPage, currentLimit, currentOrder);
+        }
+      });
+
+      document.getElementById('next-page').addEventListener('click', function (e) {
+        e.preventDefault();
+        currentPage++;
+        fetchAccounts(currentPage, currentLimit, currentOrder);
+      });
+
+      // Initial fetch
+      fetchAccounts(currentPage, currentLimit, currentOrder);
+      fetchTotalWallets();
+
+      // Import form submission
+      document.getElementById('import-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const response = await fetch('/import', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.text();
+        alert(result);
+        fetchAccounts(currentPage, currentLimit, currentOrder);
+        fetchTotalWallets();
+      });
+      
+      function updateAction (type, data){
+
+      }
+
+      async function import_balance() {
+        for (const account of accounts) {
+          try {
+            const url_balance = api_endpoint[Math.floor(Math.random() * api_endpoint.length)];
+            const response = await fetch(url_balance + "/v1/chain/get_currency_balance", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                code: "alien.worlds",
+                account: account.wallet,
+                symbol: "TLM",
+              }),
+            });
+
+            if (response.ok) {
+              const res = await response.json();
+              if (res && res.length > 0) {
+                const newBalance = res[0]; // Assuming the balance is the first element in the array
+                const updateResponse = await fetch(`/accounts/balance/${account.wallet}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ balance: newBalance }),
+                });
+
+                if (updateResponse.ok) {
+                  console.log(`Balance updated successfully for wallet ${account.wallet}`);
+                } else {
+                  console.error(`Failed to update balance for wallet ${account.wallet}`);
+                }
+              } else {
+                console.error(`No balance data found for wallet ${account.wallet}`);
+              }
+            } else {
+              console.error(`Failed to fetch balance for wallet ${account.wallet}`);
+            }
+          } catch (error) {
+            console.error(`Error updating balance for wallet ${account.wallet}: ${error.message}`);
+          }
+        }
+      }
+
+     
+
+      setInterval(() => {
+        if(accounts.length > 0){
+          fetchAccounts();
+        }
+      }, [20000])
+
+      setInterval(() => {
+        if(accounts.length > 0){
+          import_balance();
+        }
+      }, [10000])
+    });
+  </script>
+</body>
+</html>

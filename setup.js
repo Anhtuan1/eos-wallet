@@ -7,34 +7,6 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs').promises;
 const path = require('path');
 
-const dbPath = path.resolve(__dirname, 'mydatabase.db');
-
-  const db = new sqlite3.Database(dbPath, err => {
-    if (err) {
-      return console.error('Lỗi kết nối đến cơ sở dữ liệu:', err.message);
-    }
-    console.log('Đã kết nối đến cơ sở dữ liệu SQLite.');
-  });
-
-  db.serialize(() => {
-    db.run(`
-    CREATE TABLE IF NOT EXISTS accounts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      wallet TEXT,
-      privateKey TEXT,
-      publicKey TEXT,
-      accountName TEXT,
-      bags TEXT,
-      land TEXT,
-      nft TEXT,
-      lastTx TEXT,
-      lastTime TEXT,
-      note TEXT,
-      updated TEXT
-    )
-  `);
-  });
-
 const rpc_endpoint = () => {
   var endpointList = [
     "https://wax.eosdac.io",
@@ -253,7 +225,6 @@ const getBags = async (userAccount) => {
     throw error; // Throw the error to handle it further up the call stack
   }
   
- 
   
 };
 
@@ -372,31 +343,5 @@ const getNfts = async (userAccount) => {
     // }
   }
 
-  // const bags = await getBags(wallet);
-  // const landId = await getLandId(wallet);
-  // const accName2 = await getAccName(wallet);
-  // const sql = `
-  //   INSERT OR REPLACE INTO accounts (wallet, privateKey, publicKey, accountName, bags, land, nft, lastTx, lastTime, note, updated)
-  //   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  // `;
-  // db.run(sql, [
-  //   wallet,
-  //   privateKey,
-  //   publicKey,
-  //   accName2,
-  //   bags.join`,`,
-  //   landId,
-  //   '',
-  //   '',
-  //   '',
-  //   'Setup',
-  //   ''
-  // ], function(err) {
-  //   if (err) {
-  //     return console.error('Lỗi khi thêm hoặc cập nhật account:', err.message);
-  //   }
-  //   console.log(`Thêm hoặc cập nhật thành công. ID của bản ghi mới: ${this.lastID}`);
-  // });
-  db.close();
 })()
 

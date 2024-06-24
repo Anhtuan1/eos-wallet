@@ -17,7 +17,6 @@ const accountBalance = {};
 const rpc_endpoint = () => {
   var endpointList = [
     "https://wax.eosdac.io",
-    "https://wax.eosrio.io",
     "https://apiwax.3dkrender.com",
     "https://wax.blacklusion.io",
     "https://wax.blokcrafters.io",
@@ -292,7 +291,7 @@ const threadWorking = async (listAccMorning, listAccMoon, number) => {
             if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
               await minning(wallet, privateKey);
             }else{
-              await sleep(1000);
+              await sleep(500);
             }
           } catch(e) {
             console.log(e);

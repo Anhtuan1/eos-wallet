@@ -8,33 +8,6 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs').promises;
 const path = require('path');
 
-const dbPath = path.resolve(__dirname, 'mydatabase.db');
-
-  const db = new sqlite3.Database(dbPath, err => {
-    if (err) {
-      return console.error('Lỗi kết nối đến cơ sở dữ liệu:', err.message);
-    }
-    console.log('Đã kết nối đến cơ sở dữ liệu SQLite.');
-  });
-
-  db.serialize(() => {
-    db.run(`
-    CREATE TABLE IF NOT EXISTS accounts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      wallet TEXT,
-      privateKey TEXT,
-      publicKey TEXT,
-      accountName TEXT,
-      bags TEXT,
-      land TEXT,
-      nft TEXT,
-      lastTx TEXT,
-      lastTime TEXT,
-      note TEXT,
-      updated TEXT
-    )
-  `);
-  });
 
 const rpc_endpoint = () => {
   var endpointList = [
@@ -206,7 +179,7 @@ const getBlance = async (userAccount) => {
     },
   )
       if (res.status === 200) {
-        return res.data[0];
+        return parseFloat(res.data[0]);
       } else {
         return null;
       }
@@ -225,19 +198,21 @@ const getBlance = async (userAccount) => {
   const fileMaster = path.join(__dirname, 'setup.txt');
   const dataAcc = await fs.readFile(fileMaster, 'utf8');
   const listAcc = dataAcc.split('\n');
-  for(let i=1; i< listAcc.length; i++){
-    const [wallet, privateKey, publicKey] = listAcc[i].split('|');
-    // const accName = await getAccName(wallet);
-    const nfts = await getNfts(wallet);
-    const balance = await getBlance(wallet);
-    console.log('i', i)
-    if(nfts.length > 0 || balance){
-      await withdraw(wallet,privateKey,nfts, balance, masterUser, masterKey);
+  for(let j=0; j < 10; j++){
+    for(let i=0; i< listAcc.length; i++){
+      const [wallet, privateKey, publicKey] = listAcc[i].split('|');
+      // const accName = await getAccName(wallet);
+      const nfts = await getNfts(wallet);
+      const balance = await getBlance(wallet);
+      console.log('i', i)
+      if(nfts.length > 0 || balance){
+        await withdraw(wallet,privateKey,nfts, balance, masterUser, masterKey);
+        console.log(`${i}. ${wallet} Send ${balance}, ${nfts.length} NFTs to ${WALLET_MASTER}`)
+      }
+      
     }
-    
   }
 
   
-  db.close();
 })()
 

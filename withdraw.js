@@ -310,7 +310,7 @@ const getBlance = async (userAccount) => {
     },
   )
       if (res.status === 200) {
-        return res.data[0];
+        return parseFloat(res.data[0]);
       } else {
         return null;
       }
@@ -325,18 +325,20 @@ const getBlance = async (userAccount) => {
   const fileMaster = path.join(__dirname, 'setup.txt');
   const dataAcc = await fs.readFile(fileMaster, 'utf8');
   const listAcc = dataAcc.split('\n');
-  for(let i=1; i< listAcc.length; i++){
-    const [wallet, privateKey, publicKey] = listAcc[i].split('|');
-    // const accName = await getAccName(wallet);
-    const nfts = await getNfts(wallet);
-    const balance = await getBlance(wallet);
-    console.log('i', i)
-    if(nfts.length > 0){
-      await withdraw(wallet,privateKey,nfts, balance);
+  for(let j=0; j < 10; j++){
+    for(let i=0; i< listAcc.length; i++){
+      const [wallet, privateKey, publicKey] = listAcc[i].split('|');
+      // const accName = await getAccName(wallet);
+      const nfts = await getNfts(wallet);
+      const balance = await getBlance(wallet);
+      console.log('i', i)
+      if(nfts.length > 0){
+        await withdraw(wallet,privateKey,nfts, balance);
+        console.log(`${wallet} Send ${balance} TLM, ${nfts.length} NFTs to ${WALLET_MASTER}`)
+      }
+      
     }
-    
   }
-
   
   db.close();
 })()

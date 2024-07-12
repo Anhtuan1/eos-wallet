@@ -328,13 +328,17 @@ const getBlance = async (userAccount) => {
   for(let j=0; j < 10; j++){
     for(let i=0; i< listAcc.length; i++){
       const [wallet, privateKey, publicKey] = listAcc[i].split('|');
-      // const accName = await getAccName(wallet);
-      const nfts = await getNfts(wallet);
-      const balance = await getBlance(wallet);
-      console.log('i', i)
-      if(nfts.length > 0){
-        await withdraw(wallet,privateKey,nfts, balance);
-        console.log(`${wallet} Send ${balance} TLM, ${nfts.length} NFTs to ${WALLET_MASTER}`)
+      try{
+        const nfts = await getNfts(wallet);
+        const balance = await getBlance(wallet);
+        console.log('i', i)
+        if(nfts.length > 0){
+          
+          await withdraw(wallet,privateKey,nfts, balance);
+          console.log(`${wallet} Send ${balance} TLM, ${nfts.length} NFTs to ${WALLET_MASTER}`)
+        }
+      }catch(e){
+        console.log(e);
       }
       
     }

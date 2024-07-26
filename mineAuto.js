@@ -1,4 +1,4 @@
-const THREAD_NUMBER = 3;
+const THREAD_NUMBER = 6;
 
 const { Api, JsonRpc, RpcError, Serialize } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
@@ -266,7 +266,7 @@ const minning = async (userAccount, sponsorPrivateKey, masterUser, masterKey) =>
       if (res.data?.rows[0]?.last_mine_tx) {
         lastMine = res.data.rows[0].last_mine_tx;
       }
-      doProofOfWork({
+      const result = await doProofOfWork({
         lastMine: lastMine,
         account: nameToArray(userAccount),
         userAccount: userAccount,
@@ -274,7 +274,10 @@ const minning = async (userAccount, sponsorPrivateKey, masterUser, masterKey) =>
         masterUser: masterUser,
         masterKey: masterKey
       });
+      return result
     }
+
+    return;
 
   } catch (e) {
     console.log(e);
@@ -309,11 +312,12 @@ const threadWorking = async (listAccMorning, listAccMoon, masterUser, masterKey,
     } else {
       for (let i = 0; i < listAccMoon.length; i++) {
         if(i%THREAD_NUMBER == number){
-          const [wallet, privateKey, publicKey] = listAccMoon[i].split('|');
-          console.log(wallet);
+          const [wallet, privateKey] = listAccMoon[i].split('|');
+          console.log(`Start wallet ${i}: ${wallet}`);
           try {
             if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
-              await minning(wallet, privateKey,masterUser, masterKey);
+              const result = await minning(wallet, privateKey,masterUser, masterKey);
+              console.log(`Done wallet ${i}: ${wallet} \n`, result)
             }else{
               await sleep(500);
             }

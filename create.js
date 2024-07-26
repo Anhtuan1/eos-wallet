@@ -1,4 +1,4 @@
-var MAX = 1;
+var MAX = 70;
 const { Api, JsonRpc, RpcError } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
 // const fetch = require('node-fetch');                                // node only; not needed in browsers

@@ -1,4 +1,4 @@
-const THREAD_NUMBER = 6;
+const THREAD_NUMBER = 5;
 
 const { Api, JsonRpc, RpcError, Serialize } = require('eosjs');
 const { JsSignatureProvider } = require('eosjs/dist/eosjs-jssig');  // development only
@@ -296,13 +296,14 @@ const threadWorking = async (listAccMorning, listAccMoon, masterUser, masterKey,
     if (hour >= 6 && hour < 18) {
       for (let i = 0; i < listAccMorning.length; i++) {
         if(i%THREAD_NUMBER == number){
-          const [wallet, privateKey, publicKey] = listAccMorning[i].split('|');
-          console.log(wallet);
+          const [wallet, privateKey] = listAccMorning[i].split('|');
+          console.log(`Start wallet ${i}: ${wallet}`);
           try {
             if (!accountState[wallet] || now.getTime() >= accountState[wallet]) {
-              await minning(wallet, privateKey, masterUser, masterKey);
+              const result = await minning(wallet, privateKey,masterUser, masterKey);
+              console.log(`Done wallet ${i}: ${wallet} \n`, result)
             }else{
-              await sleep(1000);
+              await sleep(300);
             }
           } catch(e) {
             console.log(e);
@@ -319,7 +320,7 @@ const threadWorking = async (listAccMorning, listAccMoon, masterUser, masterKey,
               const result = await minning(wallet, privateKey,masterUser, masterKey);
               console.log(`Done wallet ${i}: ${wallet} \n`, result)
             }else{
-              await sleep(500);
+              await sleep(300);
             }
           } catch(e) {
             console.log(e);
